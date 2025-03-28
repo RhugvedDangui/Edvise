@@ -54,7 +54,7 @@ const Hero = () => {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8"
             >
-              Your comprehensive platform for academic support, career guidance, and personal growth. Join thousands of students achieving their goals with StudentCare.
+              Your comprehensive platform for academic support, career guidance, and personal growth. Join thousands of students achieving their goals with Edvise.
             </motion.p>
             
             <motion.div

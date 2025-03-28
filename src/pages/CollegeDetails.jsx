@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { FaStar, FaChalkboardTeacher, FaLaptopCode, FaBriefcase, FaGraduationCap, FaArrowLeft, FaSpinner } from 'react-icons/fa';
+import { FaStar, FaChalkboardTeacher, FaLaptopCode, FaBriefcase, FaGraduationCap, FaArrowLeft, FaSpinner, FaBook } from 'react-icons/fa';
+import { useUser } from '@clerk/clerk-react';
 
 const API_KEY = "AIzaSyAQq6XdpLMpFYGGfnKn-VewRgjJt6EOlPA";
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-const CategoryTab = ({ active, name, icon, onClick }) => {
+const CategoryTab = ({ active, name, onClick }) => {
   return (
     <button
       onClick={onClick}
       className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
         active
-          ? 'bg-primary-100 dark:bg-primary-900/40 text-blue-600 dark:text-primary-300'
-          : 'bg-gray-100 dark:bg-dark-tertiary text-blue-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-tertiary'
+          ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-300'
+          : 'bg-gray-100 dark:bg-dark-tertiary text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-secondary'
       }`}
     >
-      {icon}
       <span className="ml-2">{name}</span>
     </button>
   );
@@ -51,20 +51,41 @@ const CollegeDetails = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const collegeData = location.state?.collegeData;
+  const { user } = useUser();
   const [activeCategory, setActiveCategory] = useState('all');
   const [showSyllabusModal, setShowSyllabusModal] = useState(false);
+  const [showAdmissionModal, setShowAdmissionModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [syllabusData, setSyllabusData] = useState(null);
   const [syllabusError, setSyllabusError] = useState(null);
+  const [admissionData, setAdmissionData] = useState(null);
+  const [admissionError, setAdmissionError] = useState(null);
   const [reviewData, setReviewData] = useState({
     curriculum: { rating: 0, text: '' },
     faculty: { rating: 0, text: '' },
     internships: { rating: 0, text: '' },
     placements: { rating: 0, text: '' }
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [collegeDetails, setCollegeDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reviews, setReviews] = useState({
+    curriculum: [],
+    faculty: [],
+    internships: [],
+    placements: []
+  });
+  const [selectedFilter, setSelectedFilter] = useState('all');
+
+  const filterCategories = [
+    { id: 'all', label: 'All Reviews' },
+    { id: 'curriculum', label: 'Curriculum' },
+    { id: 'faculty', label: 'Faculty' },
+    { id: 'internships', label: 'Internships' },
+    { id: 'placements', label: 'Placements' }
+  ];
 
   // Fetch syllabus data using Gemini API
   const fetchSyllabusData = async () => {
@@ -130,6 +151,78 @@ Respond ONLY with a JSON object in this format:
       fetchSyllabusData();
     }
   }, [showSyllabusModal]);
+
+  // Fetch admission process data using Gemini API
+  const fetchAdmissionData = async () => {
+    try {
+      setAdmissionError(null);
+      const prompt = `Provide detailed information about the admission process for ${collegeData.courseName} at ${collegeData.collegeName}${collegeData.location ? `, ${collegeData.location}` : ''}.
+
+Format the response as a JSON object with the following structure:
+{
+  "admissionProcess": {
+    "overview": "Brief overview of the admission process",
+    "eligibility": ["List of eligibility criteria"],
+    "requiredDocuments": ["List of required documents"],
+    "importantDates": {
+      "applicationStart": "Approximate start date",
+      "applicationEnd": "Approximate end date",
+      "resultDeclaration": "Approximate result date"
+    },
+    "selectionProcess": ["List of selection process steps"],
+    "fees": {
+      "applicationFee": "Application fee amount",
+      "tuitionFee": "Approximate annual tuition fee"
+    }
+  }
+}`;
+
+      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch admission data');
+      }
+
+      const data = await response.json();
+      const textContent = data.candidates[0].content.parts[0].text;
+      
+      // Extract JSON from the response
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const jsonString = jsonMatch[0];
+        const parsedData = JSON.parse(jsonString);
+        setAdmissionData(parsedData);
+      } else {
+        throw new Error('Could not parse admission data from response');
+      }
+    } catch (error) {
+      console.error('Error fetching admission data:', error);
+      setAdmissionError('Failed to fetch admission data. Please try again.');
+    }
+  };
+
+  // Fetch admission data when modal is opened
+  useEffect(() => {
+    if (showAdmissionModal && !admissionData) {
+      fetchAdmissionData();
+    }
+  }, [showAdmissionModal]);
 
   // Fetch college details using Gemini API
   useEffect(() => {
@@ -287,17 +380,127 @@ Respond ONLY with a JSON object in this format:
     }));
   };
 
-  const handleSubmitReview = () => {
-    // Here you would typically send the review data to your backend
-    console.log('Review submitted:', reviewData);
-    setShowReviewModal(false);
-    // Reset form
-    setReviewData({
-      curriculum: { rating: 0, text: '' },
-      faculty: { rating: 0, text: '' },
-      internships: { rating: 0, text: '' },
-      placements: { rating: 0, text: '' }
-    });
+  const handleReviewSubmit = async () => {
+    try {
+      if (!user) {
+        alert('Please sign in to submit reviews');
+        return;
+      }
+
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      const categories = ['curriculum', 'faculty', 'internships', 'placements'];
+      const reviewPromises = categories.map(async (category) => {
+        if (reviewData[category].rating === 0 || !reviewData[category].text.trim()) {
+          return null; // Skip categories with no rating or empty text
+        }
+
+        const review = {
+          collegeId: collegeId,
+          collegeName: collegeData.collegeName,
+          category,
+          rating: reviewData[category].rating,
+          text: reviewData[category].text,
+          authorName: user.fullName || user.username,
+          userId: user.id
+        };
+
+        const response = await fetch('http://localhost:5001/api/reviews/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(review),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to submit ${category} review`);
+        }
+
+        return response.json();
+      });
+
+      // Wait for all reviews to be submitted
+      await Promise.all(reviewPromises.filter(Boolean));
+
+      // Clear all review forms
+      setReviewData({
+        curriculum: { rating: 0, text: '' },
+        faculty: { rating: 0, text: '' },
+        internships: { rating: 0, text: '' },
+        placements: { rating: 0, text: '' }
+      });
+
+      // Close the review modal
+      setShowReviewModal(false);
+
+      // Show success message and reload
+      alert('Reviews submitted successfully!');
+      window.location.reload();
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      setSubmitError('Failed to submit reviews. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Fetch reviews for the college
+  const fetchReviews = async () => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/reviews/college/${collegeId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch reviews');
+      }
+      const data = await response.json();
+      
+      // Organize reviews by category
+      const reviewsByCategory = {
+        curriculum: [],
+        faculty: [],
+        internships: [],
+        placements: []
+      };
+
+      data.reviews.forEach(review => {
+        if (reviewsByCategory[review.category]) {
+          reviewsByCategory[review.category].push(review);
+        }
+      });
+
+      setReviews(reviewsByCategory);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (collegeId) {
+      fetchReviews();
+    }
+  }, [collegeId]);
+
+  // Calculate average rating for a category
+  const getAverageRating = (category) => {
+    const categoryReviews = reviews[category];
+    if (!categoryReviews || categoryReviews.length === 0) return '0.0';
+    const sum = categoryReviews.reduce((acc, review) => acc + review.rating, 0);
+    return (sum / categoryReviews.length).toFixed(1);
+  };
+
+  // Calculate overall rating from all reviews
+  const calculateOverallRating = () => {
+    const allReviews = [
+      ...reviews.curriculum || [],
+      ...reviews.faculty || [],
+      ...reviews.internships || [],
+      ...reviews.placements || []
+    ];
+    
+    if (allReviews.length === 0) return '0.0';
+    const sum = allReviews.reduce((acc, review) => acc + review.rating, 0);
+    return (sum / allReviews.length).toFixed(1);
   };
 
   if (isLoading) {
@@ -400,34 +603,13 @@ Respond ONLY with a JSON object in this format:
     }
   };
 
-  // Calculate average ratings
-  const calculateAverageRating = (reviews) => {
-    if (!reviews || reviews.length === 0) return 0;
-    const sum = reviews.reduce((total, review) => total + review.rating, 0);
-    return (sum / reviews.length).toFixed(1);
-  };
-
-  const curriculumRating = calculateAverageRating(collegeDetails.curriculum.reviews);
-  const facultyRating = calculateAverageRating(collegeDetails.faculty.reviews);
-  const internshipsRating = calculateAverageRating(collegeDetails.internships.reviews);
-  const placementsRating = calculateAverageRating(collegeDetails.placements.reviews);
-  
-  // Calculate overall rating
-  const allReviews = [
-    ...collegeDetails.curriculum.reviews,
-    ...collegeDetails.faculty.reviews,
-    ...collegeDetails.internships.reviews,
-    ...collegeDetails.placements.reviews
-  ];
-  const overallRating = calculateAverageRating(allReviews);
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-primary pt-20 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         {/* Back button */}
         <button 
           onClick={() => navigate('/reviews')}
-          className="flex items-center text-primary-600 dark:text-primary-400 mb-6 hover:underline"
+          className="flex items-center bg-white dark:bg-dark-secondary text-primary-600 dark:text-primary-400 mb-6 hover:underline"
         >
           <FaArrowLeft className="mr-2" />
           Back to Reviews
@@ -435,10 +617,10 @@ Respond ONLY with a JSON object in this format:
 
         {/* College header */}
         <div className="bg-white dark:bg-dark-secondary rounded-lg shadow-md p-6 mb-6">
-          <div className="flex flex-col md:flex-row justify-between">
+          <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{collegeData.collegeName}</h1>
-              <div className="flex flex-wrap items-center gap-2 mb-4">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="bg-primary-100 dark:bg-primary-900/40 text-primary-800 dark:text-primary-300 px-3 py-1 rounded-full text-sm font-medium">
                   {collegeData.courseName}
                 </span>
@@ -452,67 +634,36 @@ Respond ONLY with a JSON object in this format:
                   </span>
                 )}
               </div>
-              <p className="text-gray-700 dark:text-gray-200 mb-4">
-                {collegeDetails.collegeDescription}
-              </p>
             </div>
-            <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-dark-tertiary px-6 py-4 rounded-lg mt-4 md:mt-0">
-              <div className="text-center mb-3">
-                <div className="text-3xl font-bold text-gray-800 dark:text-white flex items-center justify-center">
-                  {overallRating}
-                  <FaStar className="text-yellow-500 ml-2" />
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Overall Rating</p>
-              </div>
+            <div className="flex gap-2">
               <button
-                onClick={() => setShowReviewModal(true)}
-                className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+                onClick={() => setShowSyllabusModal(true)}
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors flex items-center"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Add Review
+                <FaBook className="mr-2" />
+                View Syllabus
+              </button>
+              <button
+                onClick={() => setShowAdmissionModal(true)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center"
+              >
+                <FaGraduationCap className="mr-2" />
+                Admission Process
               </button>
             </div>
           </div>
-
-          {/* Rating breakdown */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-dark-tertiary">
-              <div className="flex items-center justify-center text-xl font-bold text-gray-800 dark:text-white">
-                {curriculumRating}
-                <FaStar className="text-yellow-500 ml-1 h-4 w-4" />
+          <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed flex-1">
+              {collegeDetails.collegeDescription}
+            </p>
+            <div className="flex flex-col items-center justify-center bg-gray-100 dark:bg-dark-tertiary px-4 py-3 rounded-lg shadow-sm self-start">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-800 dark:text-white flex items-center justify-center space-x-1.5">
+                  <span>{calculateOverallRating()}</span>
+                  <FaStar className="text-yellow-500 h-5 w-5" />
+                </div>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide">Overall Rating</p>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center mt-1">
-                <FaLaptopCode className="mr-1" /> Curriculum
-              </p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-dark-tertiary">
-              <div className="flex items-center justify-center text-xl font-bold text-gray-800 dark:text-white">
-                {facultyRating}
-                <FaStar className="text-yellow-500 ml-1 h-4 w-4" />
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center mt-1">
-                <FaChalkboardTeacher className="mr-1" /> Faculty
-              </p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-dark-tertiary">
-              <div className="flex items-center justify-center text-xl font-bold text-gray-800 dark:text-white">
-                {internshipsRating}
-                <FaStar className="text-yellow-500 ml-1 h-4 w-4" />
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center mt-1">
-                <FaBriefcase className="mr-1" /> Internships
-              </p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-gray-50 dark:bg-dark-tertiary">
-              <div className="flex items-center justify-center text-xl font-bold text-gray-800 dark:text-white">
-                {placementsRating}
-                <FaStar className="text-yellow-500 ml-1 h-4 w-4" />
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center mt-1">
-                <FaGraduationCap className="mr-1" /> Placements
-              </p>
             </div>
           </div>
         </div>
@@ -522,31 +673,26 @@ Respond ONLY with a JSON object in this format:
           <CategoryTab
             active={activeCategory === 'all'}
             name="All Reviews"
-            icon={<FaStar className="h-4 w-4" />}
             onClick={() => setActiveCategory('all')}
           />
           <CategoryTab
             active={activeCategory === 'curriculum'}
             name="Curriculum"
-            icon={<FaLaptopCode className="h-4 w-4" />}
             onClick={() => setActiveCategory('curriculum')}
           />
           <CategoryTab
             active={activeCategory === 'faculty'}
             name="Faculty"
-            icon={<FaChalkboardTeacher className="h-4 w-4" />}
             onClick={() => setActiveCategory('faculty')}
           />
           <CategoryTab
             active={activeCategory === 'internships'}
             name="Internships"
-            icon={<FaBriefcase className="h-4 w-4" />}
             onClick={() => setActiveCategory('internships')}
           />
           <CategoryTab
             active={activeCategory === 'placements'}
             name="Placements"
-            icon={<FaGraduationCap className="h-4 w-4" />}
             onClick={() => setActiveCategory('placements')}
           />
         </div>
@@ -557,17 +703,6 @@ Respond ONLY with a JSON object in this format:
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
               {activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} Overview
             </h2>
-            {activeCategory === 'curriculum' && (
-              <button
-                onClick={() => setShowSyllabusModal(true)}
-                className="mb-4 inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                View Syllabus
-              </button>
-            )}
             <p className="text-gray-700 dark:text-gray-200 mb-6">
               {collegeDetails[activeCategory].overview}
             </p>
@@ -579,7 +714,7 @@ Respond ONLY with a JSON object in this format:
                   {collegeDetails[activeCategory].strengths.map((strength, index) => (
                     <li key={index} className="flex items-start">
                       <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       <span className="text-gray-700 dark:text-gray-300">{strength}</span>
                     </li>
@@ -611,13 +746,13 @@ Respond ONLY with a JSON object in this format:
                 <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
               </div>
               <div className="inline-block align-bottom bg-white dark:bg-dark-secondary rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-7xl sm:w-full mx-4">
-                <div className="bg-white dark:bg-dark-secondary px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="bg-white dark:bg-dark-secondary px-4 pt-5 pb-4 sm:p-6">
                   <div className="sm:flex sm:items-start">
                     <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                           </svg>
                           Course Syllabus
                         </h3>
@@ -688,6 +823,104 @@ Respond ONLY with a JSON object in this format:
           </div>
         )}
 
+        {/* Admission Process Modal */}
+        {showAdmissionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-dark-secondary rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Admission Process</h2>
+                  <button
+                    onClick={() => setShowAdmissionModal(false)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {admissionError ? (
+                  <div className="text-red-600 dark:text-red-400 text-center py-4">
+                    {admissionError}
+                  </div>
+                ) : !admissionData ? (
+                  <div className="text-center py-4">
+                    <FaSpinner className="animate-spin h-8 w-8 mx-auto text-primary-600 dark:text-primary-400 mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">Loading admission details...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Overview</h3>
+                      <p className="text-gray-600 dark:text-gray-300">{admissionData.admissionProcess.overview}</p>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Eligibility Criteria</h3>
+                      <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-300">
+                        {admissionData.admissionProcess.eligibility.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Required Documents</h3>
+                      <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-300">
+                        {admissionData.admissionProcess.requiredDocuments.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Important Dates</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-gray-50 dark:bg-dark-tertiary p-3 rounded-lg">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Application Start</p>
+                          <p className="font-medium text-gray-800 dark:text-white">{admissionData.admissionProcess.importantDates.applicationStart}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-dark-tertiary p-3 rounded-lg">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Application End</p>
+                          <p className="font-medium text-gray-800 dark:text-white">{admissionData.admissionProcess.importantDates.applicationEnd}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-dark-tertiary p-3 rounded-lg">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Result Declaration</p>
+                          <p className="font-medium text-gray-800 dark:text-white">{admissionData.admissionProcess.importantDates.resultDeclaration}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Selection Process</h3>
+                      <ul className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-300">
+                        {admissionData.admissionProcess.selectionProcess.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Fees</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gray-50 dark:bg-dark-tertiary p-3 rounded-lg">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Application Fee</p>
+                          <p className="font-medium text-gray-800 dark:text-white">{admissionData.admissionProcess.fees.applicationFee}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-dark-tertiary p-3 rounded-lg">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Annual Tuition Fee</p>
+                          <p className="font-medium text-gray-800 dark:text-white">{admissionData.admissionProcess.fees.tuitionFee}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Review Modal */}
         {showReviewModal && (
           <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -713,9 +946,10 @@ Respond ONLY with a JSON object in this format:
                         </button>
                       </div>
                       <div className="space-y-6">
+                        {/* Review Categories */}
                         {['curriculum', 'faculty', 'internships', 'placements'].map((category) => (
                           <div key={category} className="bg-gray-50 dark:bg-dark-tertiary rounded-lg p-4">
-                            <h4 className="text-lg font-semibold text-gray-800 dark:text-white capitalize mb-3">
+                            <h4 className="text-lg font-semibold text-gray-800 dark:text-white capitalize">
                               {category}
                             </h4>
                             <div className="flex items-center mb-3">
@@ -752,9 +986,10 @@ Respond ONLY with a JSON object in this format:
                   <button
                     type="button"
                     className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm"
-                    onClick={handleSubmitReview}
+                    onClick={handleReviewSubmit}
+                    disabled={isSubmitting}
                   >
-                    Submit Review
+                    {isSubmitting ? 'Submitting...' : 'Submit Reviews'}
                   </button>
                   <button
                     type="button"
@@ -771,12 +1006,69 @@ Respond ONLY with a JSON object in this format:
 
         {/* Reviews section */}
         <div className="bg-white dark:bg-dark-secondary rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6">Reviews</h2>
-          <div className="space-y-4">
-            {getReviewsByCategory().map((review, index) => (
-              <ReviewItem key={index} review={review} />
-            ))}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Reviews</h2>
+            <button
+              onClick={() => setShowReviewModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Write a Review
+            </button>
           </div>
+
+          {/* Reviews content */}
+          {selectedFilter === 'all' ? (
+            // Show all reviews grouped by category
+            ['curriculum', 'faculty', 'internships', 'placements'].map(category => (
+              <div key={category} className="mb-8 last:mb-0">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-800 dark:text-white capitalize">
+                    {category} Reviews
+                  </h3>
+                </div>
+                
+                {reviews[category]?.length > 0 ? (
+                  <div className="space-y-4">
+                    {reviews[category].map((review, index) => (
+                      <ReviewItem key={index} review={review} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-gray-50 dark:bg-dark-tertiary rounded-lg">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No reviews yet for {category}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            // Show filtered reviews
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-800 dark:text-white capitalize">
+                  {selectedFilter} Reviews
+                </h3>
+              </div>
+              
+              {reviews[selectedFilter]?.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews[selectedFilter].map((review, index) => (
+                    <ReviewItem key={index} review={review} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-gray-50 dark:bg-dark-tertiary rounded-lg">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    No reviews yet for {selectedFilter}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

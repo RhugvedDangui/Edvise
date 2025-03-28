@@ -53,7 +53,7 @@ const Footer = () => {
       {/* Content */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Section with Newsletter */}
-        <div className="py-12 lg:py-16">
+        <div className="py-12 lg:py-16 hidden">
           <div className="bg-white dark:bg-dark-content rounded-3xl shadow-xl p-8 lg:p-12">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
               <div>
@@ -166,7 +166,7 @@ const Footer = () => {
 
             {/* Copyright */}
             <p className="text-gray-500 dark:text-gray-400">
-              &copy; {new Date().getFullYear()} EDU AI. All rights reserved.
+              &copy; {new Date().getFullYear()} Edvise. All rights reserved.
             </p>
           </div>
         </div>

@@ -17,6 +17,10 @@ function Navbar() {
     { name: 'Courses', path: '/courses' },
     { name: 'Features', path: '/features' },
     { name: 'Reviews', path: '/reviews' },
+    { name: 'Mentors', path: '/mentors' },
+    { name: 'Chat', path: '/chat' },
+    { name: 'Government Schemes', path: '/government-schemes' },
+    { name: 'Profile', path: '/profile' },
   ];
 
   // Add teacher dashboard to nav items if role is teacher
@@ -137,8 +141,10 @@ function Navbar() {
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`block px-3 py-2 rounded-md text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-dark-accent hover:bg-gray-100 dark:hover:bg-dark-content ${
-                      isActive(item.path) ? 'text-primary-500 dark:text-dark-accent bg-gray-100 dark:bg-dark-content' : ''
+                    className={`block px-3 py-2 rounded-md text-base font-medium ${
+                      isActive(item.path)
+                        ? 'bg-primary-50 dark:bg-dark-content text-primary-500 dark:text-dark-accent'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-content hover:text-primary-500 dark:hover:text-dark-accent'
                     }`}
                     onClick={() => setIsOpen(false)}
                   >

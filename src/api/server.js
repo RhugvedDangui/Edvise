@@ -5,6 +5,9 @@ import dotenv from 'dotenv';
 import roadmapRoutes from './routes/roadmapRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import communityRoutes from './routes/communityRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
+import connectionRoutes from './routes/connectionRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
 
 dotenv.config();
 
@@ -30,15 +33,28 @@ app.use((req, res, next) => {
 const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
-    console.log('MongoDB URI:', process.env.MONGODB_URI ? 'URI is set' : 'URI is missing');
+    // Try local MongoDB first
+    let uri = 'mongodb://127.0.0.1:27017/edvise';
     
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-      socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
-    });
-    
+    try {
+      await mongoose.connect(uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      });
+    } catch (localError) {
+      console.log('Local MongoDB connection failed, trying fallback...');
+      // Fallback to MongoDB Atlas if local fails
+      uri = process.env.MONGODB_URI || 'mongodb+srv://your_username:your_password@your_cluster.mongodb.net/edvise';
+      await mongoose.connect(uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      });
+    }
+
     console.log('Successfully connected to MongoDB');
   } catch (err) {
     console.error('MongoDB connection error:', err);
@@ -48,11 +64,15 @@ const connectDB = async () => {
       code: err.code,
       stack: err.stack
     });
+    
+    console.log('\nPlease ensure either:');
+    console.log('1. MongoDB is running locally');
+    console.log('2. MongoDB Atlas connection string is set in .env file');
     process.exit(1);
   }
 };
 
-// MongoDB connection error handler
+// MongoDB event handlers
 mongoose.connection.on('error', (err) => {
   console.error('MongoDB connection error:', err);
   console.error('Error details:', {
@@ -62,7 +82,6 @@ mongoose.connection.on('error', (err) => {
   });
 });
 
-// MongoDB disconnection handler
 mongoose.connection.on('disconnected', () => {
   console.log('MongoDB disconnected');
 });
@@ -71,17 +90,19 @@ mongoose.connection.on('disconnected', () => {
 app.use('/api/roadmaps', roadmapRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/communities', communityRoutes);
+app.use('/api/profiles', profileRoutes);
+app.use('/api/connections', connectionRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error occurred:', {
     message: err.message,
-    stack: err.stack,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     name: err.name,
     code: err.code
   });
 
-  // Handle payload too large error
   if (err instanceof SyntaxError && err.status === 413) {
     return res.status(413).json({
       error: 'Request entity too large',
@@ -89,7 +110,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // MongoDB errors
   if (err instanceof mongoose.Error) {
     return res.status(500).json({
       error: 'Database error',
@@ -99,15 +119,15 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Generic error response
-  res.status(500).json({ 
-    error: 'Something went wrong!',
-    message: err.message,
-    type: err.name,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  res.status(err.status || 500).json({
+    error: {
+      message: err.message || 'Internal Server Error',
+      details: process.env.NODE_ENV === 'development' ? err : undefined
+    }
   });
 });
 
+// Start server
 const startServer = async () => {
   try {
     await connectDB();

@@ -11,7 +11,7 @@ const ReviewCard = ({ review }) => {
       state: { collegeData: review } 
     });
   };
-  
+
   return (
     <div 
       className="bg-white dark:bg-dark-secondary rounded-lg shadow-md p-4 mb-2 hover:shadow-lg transition-all border border-transparent hover:border-primary-200 dark:hover:border-primary-900 cursor-pointer"
@@ -32,12 +32,6 @@ const ReviewCard = ({ review }) => {
               </p>
             )}
           </div>
-        </div>
-        <div className="flex items-center bg-gray-100 dark:bg-dark-tertiary px-3 py-1 rounded-full">
-          <span className="text-2xl font-bold text-gray-800 dark:text-white mr-1">{review.rating}</span>
-          <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 576 512" className="text-yellow-500" height="18" width="18" xmlns="http://www.w3.org/2000/svg">
-            <path d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z"></path>
-          </svg>
         </div>
       </div>
       <div className="mb-4">
@@ -106,81 +100,43 @@ const Reviews = () => {
       id: 1,
       collegeName: 'Engineering College of Technology',
       courseName: 'Computer Science',
-      rating: 4.5,
       placementSuccess: 92,
-      reviewText: 'Great faculty and excellent placement opportunities. The curriculum is up-to-date with industry standards.',
       collegeDescription: 'Engineering College of Technology is a premier institution established in 1985, known for its state-of-the-art facilities and industry partnerships. The campus spans 50 acres with modern laboratories, a central library with over 50,000 books, and dedicated research centers.',
-      location: 'Bangalore, Karnataka'
+      location: 'Bangalore, Karnataka',
+      reviews: {
+        curriculum: [],
+        faculty: [],
+        internships: [],
+        placements: []
+      }
     },
     {
       id: 2,
       collegeName: 'Institute of Applied Sciences',
       courseName: 'Electronics Engineering',
-      rating: 3.8,
       placementSuccess: 78,
-      reviewText: 'Decent infrastructure but curriculum needs updating. Placement cell is active and helpful.',
       collegeDescription: 'Institute of Applied Sciences is recognized for its strong focus on research and innovation in applied sciences. Founded in 1992, the institute offers specialized programs with emphasis on practical learning and industry exposure through its 15 research labs and innovation centers.',
-      location: 'Mumbai, Maharashtra'
+      location: 'Mumbai, Maharashtra',
+      reviews: {
+        curriculum: [],
+        faculty: [],
+        internships: [],
+        placements: []
+      }
     },
     {
       id: 3,
       collegeName: 'National College of Engineering',
       courseName: 'Mechanical Engineering',
-      rating: 4.2,
       placementSuccess: 85,
-      reviewText: 'Strong practical exposure and industry connections. Labs are well-equipped with modern machinery.',
       collegeDescription: 'National College of Engineering is among the top engineering institutions in the country with a legacy of over 40 years. The college is known for its robust industry connections, experienced faculty with international exposure, and comprehensive infrastructure including specialized workshops and laboratories.',
-      location: 'Delhi, NCR'
-    },
-    {
-      id: 4,
-      collegeName: 'Engineering College of Technology',
-      courseName: 'Information Technology',
-      rating: 4.3,
-      placementSuccess: 90,
-      reviewText: 'Excellent programming courses and industry-focused projects. Career guidance is top-notch.',
-      collegeDescription: 'Engineering College of Technology offers cutting-edge IT programs with specialized tracks in AI, cloud computing, and cybersecurity. The department maintains close ties with tech giants and startups alike, providing students with internship opportunities and industry-relevant projects.',
-      location: 'Bangalore, Karnataka'
-    },
-    {
-      id: 5,
-      collegeName: 'State Technical University',
-      courseName: 'Civil Engineering',
-      rating: 3.9,
-      placementSuccess: 82,
-      reviewText: 'Good exposure to field work and design software. Faculty is experienced and helpful.',
-      collegeDescription: 'State Technical University is a government-funded institution established in 1972 with a focus on technical education and research. The Civil Engineering department is equipped with material testing labs, surveying equipment, and advanced design software to provide hands-on training to students.',
-      location: 'Chennai, Tamil Nadu'
-    },
-    {
-      id: 6,
-      collegeName: 'Global Institute of Technology',
-      courseName: 'Data Science',
-      rating: 4.7,
-      placementSuccess: 95,
-      reviewText: 'Cutting-edge curriculum with focus on AI and machine learning. Excellent industry partnerships and research opportunities.',
-      collegeDescription: 'Global Institute of Technology is at the forefront of data science education with dedicated computing clusters, AI research labs, and partnerships with leading tech companies. The institute regularly hosts hackathons, tech symposiums, and has incubated over 25 successful startups in the last decade.',
-      location: 'Hyderabad, Telangana'
-    },
-    {
-      id: 7,
-      collegeName: 'Metropolitan University',
-      courseName: 'Computer Science',
-      rating: 4.1,
-      placementSuccess: 88,
-      reviewText: 'Strong fundamentals with good balance of theory and practice. Active coding clubs and hackathons.',
-      collegeDescription: 'Metropolitan University is known for its interdisciplinary approach to education, blending computer science with other disciplines. The university campus features modern computing facilities, innovation hubs, and collaborative spaces designed to foster creativity and technical excellence.',
-      location: 'Pune, Maharashtra'
-    },
-    {
-      id: 8,
-      collegeName: 'Technical Institute of Engineering',
-      courseName: 'Electrical Engineering',
-      rating: 3.7,
-      placementSuccess: 75,
-      reviewText: 'Decent labs but curriculum needs modernization. Faculty is knowledgeable but teaching methods could improve.',
-      collegeDescription: 'Technical Institute of Engineering specializes in electrical and electronics disciplines with well-equipped power systems labs, microprocessor labs, and electrical machines workshops. The institute has strong industry connections with power companies and electronics manufacturers for training and placement.',
-      location: 'Kolkata, West Bengal'
+      location: 'Delhi, NCR',
+      reviews: {
+        curriculum: [],
+        faculty: [],
+        internships: [],
+        placements: []
+      }
     }
   ];
 
@@ -207,7 +163,10 @@ const Reviews = () => {
     }
     
     if (filters.minRating > 0) {
-      results = results.filter(review => review.rating >= filters.minRating);
+      results = results.filter(review => {
+        const rating = review.rating;
+        return rating !== null && parseFloat(rating) >= filters.minRating;
+      });
     }
     
     if (filters.minPlacement > 0) {
@@ -218,7 +177,7 @@ const Reviews = () => {
       results = results.filter(review => 
         review.collegeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         review.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.reviewText.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        review.collegeDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (review.location && review.location.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
@@ -462,13 +421,26 @@ const Reviews = () => {
     
     try {
       const results = await fetchCollegeSearchResults(searchTerm);
-      setSearchResults(results);
+      const processedResults = processSearchResults(results);
+      setSearchResults(processedResults);
     } catch (error) {
       console.error('Error searching for colleges:', error);
       setSearchError('Failed to fetch search results. Please try again.');
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const processSearchResults = (results) => {
+    return results.map(result => ({
+      ...result,
+      reviews: result.reviews || {
+        curriculum: [],
+        faculty: [],
+        internships: [],
+        placements: []
+      }
+    }));
   };
 
   const fetchCollegeSearchResults = async (query) => {
@@ -516,18 +488,24 @@ const Reviews = () => {
 
       const data = await response.json();
       
-     
-      const responseText = data.candidates[0].content.parts[0].text;
-        const jsonMatch = responseText.match(/\[\s*\{.*\}\s*\]/s);
-      
-      if (!jsonMatch) {
-        throw new Error('Could not parse JSON from response');
+      if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+        const content = data.candidates[0].content;
+        if (content.parts && content.parts[0] && content.parts[0].text) {
+          const responseText = content.parts[0].text;
+          const jsonMatch = responseText.match(/\[\s*\{.*\}\s*\]/s);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[0];
+            const results = JSON.parse(jsonStr);
+            return results;
+          } else {
+            throw new Error('Could not parse JSON from response');
+          }
+        } else {
+          throw new Error('Invalid response format: missing text content');
+        }
+      } else {
+        throw new Error('Invalid response format: missing candidates or content');
       }
-      
-      const jsonText = jsonMatch[0];
-      const results = JSON.parse(jsonText);
-      
-      return results;
     } catch (error) {
       console.error('Error in fetchCollegeSearchResults:', error);
       throw error;
@@ -665,12 +643,6 @@ const Reviews = () => {
                           </span>
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center bg-gray-100 dark:bg-dark-tertiary px-3 py-1 rounded-full">
-                      <span className="text-2xl font-bold text-gray-800 dark:text-white mr-1">{result.rating}</span>
-                      <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 576 512" className="text-yellow-500" height="18" width="18" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z"></path>
-                      </svg>
                     </div>
                   </div>
                   <div className="mb-4">
