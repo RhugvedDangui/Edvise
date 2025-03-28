@@ -19,7 +19,7 @@ function Navbar() {
     { name: 'Reviews', path: '/reviews' },
     { name: 'Mentors', path: '/mentors' },
     { name: 'Chat', path: '/chat' },
-    { name: 'Government Schemes', path: '/government-schemes' },
+    { name: 'Schemes', path: '/government-schemes' },
     { name: 'Profile', path: '/profile' },
   ];
 
