@@ -2,10 +2,6 @@
 
 Edvise is an innovative student support platform designed to empower students with interactive learning tools, collaboration features, and a modern architecture to enhance their educational experience.
 
-## Team Information
-### Team Name
-EQUINOX
-
 ### Team Leader
 - **Rhugved Dangui**  
   - Contact: 8805218288 
@@ -13,24 +9,7 @@ EQUINOX
 
 ### Team Members
 1. **Fayaz Khan**  
-   - Contact: 9209352504  
-   - Email: fayaz.khanxid411@gmail.com
 2. **Tanmay Desai**  
-   - Contact:9860997932 
-   - Email: tanmay2004desai@gmail.com
-
-### Individual Contributions
-1. **Rhugved Dangui**:  
-   - Project Management  
-   - Frontend Development    
-2. **Fayaz Khan**:  
-   - Backend Integration  
-   - Database Management  
-   - API Development  
-3. **Tanmay Desai**:  
-   - Real-time Collaboration Features   
-   - Testing and Debugging  
-   - UI/UX Design
 
 ### Collaborations
 - **Rhugved Dangui & Fayaz Khan**: Worked together on integrating the frontend with the backend APIs for seamless data flow.  
