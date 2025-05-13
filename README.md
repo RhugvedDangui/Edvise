@@ -4,8 +4,8 @@ Edvise is an innovative student support platform designed to empower students wi
 
 ### Team Leader
 - **Rhugved Dangui**  
-  - Contact: 8805218288 
-  - Email: rhugveddangui07@gmail.com
+  - Contact: 8805218288
+  - Email: rhugveddangui@gmail.com
 
 ### Team Members
 1. **Fayaz Khan**  
